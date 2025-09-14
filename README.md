@@ -1,4 +1,5 @@
 📖 README – Licznik Uśmiechów
+
 👥 Autorzy
 
 Jakub Polewczyk
