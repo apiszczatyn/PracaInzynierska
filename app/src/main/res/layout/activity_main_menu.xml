@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp"
+    android:background="#FFFFFF">
+
+    <!-- Logo lub nazwa aplikacji -->
+    <TextView
+        android:id="@+id/appTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Licznik Uśmiechów"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="#000000"
+        android:layout_marginBottom="48dp" />
+
+    <!-- Przycisk rozpocznij -->
+    <Button
+        android:id="@+id/startButton"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:text="Rozpocznij"
+        android:textSize="18sp"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Przycisk wyjścia -->
+    <Button
+        android:id="@+id/exitButton"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:text="Wyjście"
+        android:textSize="16sp"
+        android:backgroundTint="#D32F2F"
+        android:textColor="#FFFFFF" />
+
+</LinearLayout>
