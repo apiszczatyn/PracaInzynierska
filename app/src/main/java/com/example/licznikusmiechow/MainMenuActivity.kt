@@ -13,16 +13,20 @@ class MainMenuActivity : AppCompatActivity() {
 
         val startButton: Button = findViewById(R.id.startButton)
         val exitButton: Button = findViewById(R.id.exitButton)
+        val settingsButton: Button = findViewById(R.id.settingsButton) // NOWY
 
-        // Start kamery
         startButton.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
         }
 
-        // Wyjście z aplikacji
+        settingsButton.setOnClickListener {
+            val intent = Intent(this, SettingsActivity::class.java)
+            startActivity(intent)
+        }
+
         exitButton.setOnClickListener {
-            finishAffinity()  // zamyka wszystkie aktywności aplikacji
+            finishAffinity()
         }
     }
 }

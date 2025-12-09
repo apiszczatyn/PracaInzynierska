@@ -16,10 +16,15 @@ data class SvmModel(
     val classes: Array<String>
 )
 
-class SmileSvmInterpreter(context: Context) {
+class SmileSvmInterpreter(private val context: Context) {
 
     companion object {
         private const val TAG = "SmileSvmInterpreter"
+
+        // nazwa pliku i klucza w SharedPreferences
+        private const val PREFS_NAME = "smile_settings"
+        private const val KEY_THRESHOLD = "smile_threshold"
+        private const val DEFAULT_THRESHOLD = 0.0f  // to, co wcześniej (f >= 0)
     }
 
     private val model: SvmModel = loadFromAssets(context, "svm_smile_model.json")
@@ -50,27 +55,30 @@ class SmileSvmInterpreter(context: Context) {
             classesJson.get(i).toString()
         }
 
-        Log.d(TAG, "Loaded SVM model: " +
-                "features=${mean.size}, SVs=${supportVectors.size}, classes=${classes.toList()}")
+        Log.d(TAG, "Loaded SVM model: features=${mean.size}, SVs=${supportVectors.size}, classes=${classes.toList()}")
 
         return SvmModel(mean, scale, supportVectors, dualCoef, intercept, gamma, classes)
     }
 
-    /**
-     * Zwraca surową wartość funkcji decyzyjnej f(x).
-     * (to samo co decision_function w sklearn)
-     */
+    /** odczyt aktualnego progu z SharedPreferences */
+    private fun getThreshold(): Double {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val t = prefs.getFloat(KEY_THRESHOLD, DEFAULT_THRESHOLD)
+        return t.toDouble()
+    }
+
+    /** decyzja SVM – jak w sklearn decision_function */
     fun decisionScore(features: FloatArray): Double {
         require(features.size == model.mean.size) {
             "Zły rozmiar wektora cech: ${features.size}, oczekiwano ${model.mean.size}"
         }
 
-        // 1) StandardScaler: (x - mean) / scale
+        // 1) StandardScaler
         val x = DoubleArray(features.size) { i ->
             (features[i].toDouble() - model.mean[i]) / model.scale[i]
         }
 
-        // 2) SVM z jądrem RBF
+        // 2) RBF SVM
         var sum = 0.0
         for (i in model.supportVectors.indices) {
             val sv = model.supportVectors[i]
@@ -83,26 +91,15 @@ class SmileSvmInterpreter(context: Context) {
             sum += model.dualCoef[i] * k
         }
         val f = sum + model.intercept
-
         Log.d(TAG, "features=${features.joinToString()}, score=$f")
-
         return f
-    }
-
-    fun predictLabel(features: FloatArray): String {
-        val f = decisionScore(features)
-        // klasy w sklearn są POSORTOWANE, w binarnym SVC:
-        // f >= 0 -> classes[1],  f < 0 -> classes[0]
-        val label = if (f >= 0.0) model.classes[1] else model.classes[0]
-        Log.d(TAG, "predicted label=$label")
-        return label
     }
 
     fun isSmiling(features: FloatArray): Boolean {
         val f = decisionScore(features)
-        // NIE opieramy się na stringu, tylko na znaku f:
-        val smiling = f >= 0.0
-        Log.d(TAG, "isSmiling=$smiling (f=$f)")
+        val threshold = getThreshold()
+        val smiling = f >= threshold
+        Log.d(TAG, "isSmiling=$smiling (f=$f, threshold=$threshold)")
         return smiling
     }
 }
