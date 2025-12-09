@@ -41,6 +41,9 @@ android {
 kotlin { jvmToolchain(21) }
 
 dependencies {
+    // face landmarker
+    implementation ("com.google.mediapipe:tasks-vision:latest.release")
+
     // Desugaring (dla nowszych API Javy na starszych Androidach)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
@@ -57,4 +60,10 @@ dependencies {
 
     // OpenCV jako moduł (z logów: :opencv)
     implementation(project(":opencv"))
+    // Testy jednostkowe (JUnit4)
+    testImplementation("junit:junit:4.13.2")
+
+    // Testy instrumentacyjne (AndroidX Test + JUnit4)
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }

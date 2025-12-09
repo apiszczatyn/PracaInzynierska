@@ -1,5 +1,15 @@
 package com.example.licznikusmiechow
 
+import com.google.mediapipe.framework.image.BitmapImageBuilder
+import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker
+import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult
+import com.google.mediapipe.tasks.vision.core.RunningMode
+import com.google.mediapipe.tasks.core.BaseOptions
+
+import android.graphics.PointF
+import android.os.SystemClock
+
+
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.*
@@ -30,6 +40,9 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.view.transform.CoordinateTransform
 class MainActivity : ComponentActivity() {
 
+     private lateinit var faceLandmarker: FaceLandmarker
+    private lateinit var svm: SmileSvmInterpreter
+
     private lateinit var previewView: PreviewView
     private lateinit var overlay: OverlayView
     private lateinit var smileText: TextView
@@ -41,6 +54,24 @@ class MainActivity : ComponentActivity() {
     private val executor = Executors.newSingleThreadExecutor()
     private var frameCount = 0
 
+
+
+    private fun initFaceLandmarker() {
+        val baseOptions = BaseOptions.builder()
+            .setModelAssetPath("face_landmarker.task") // plik w assets
+            .build()
+
+        val options = FaceLandmarker.FaceLandmarkerOptions.builder()
+            .setBaseOptions(baseOptions)
+            .setMinFaceDetectionConfidence(0.3f)
+            .setMinFacePresenceConfidence(0.3f)
+            .setMinTrackingConfidence(0.3f)
+            .setRunningMode(RunningMode.VIDEO)
+            .setNumFaces(1)
+            .build()
+
+        faceLandmarker = FaceLandmarker.createFromOptions(this, options)
+    }
 
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -59,8 +90,11 @@ class MainActivity : ComponentActivity() {
         overlay = findViewById(R.id.overlay)
         smileText = findViewById(R.id.smileText)
 
-        smile = SmileInterpreter(this)
+        //smile = SmileInterpreter(this)
         yuv = YuvToRgbConverter(this)
+
+        svm = SmileSvmInterpreter(this)
+        initFaceLandmarker()
 
 
         val cascadeFile: File = AssetUtils.copyAssetToCache(this, "haarcascade_frontalface_default.xml")
@@ -69,6 +103,9 @@ class MainActivity : ComponentActivity() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
             == PackageManager.PERMISSION_GRANTED) startCamera()
         else askCamera.launch(Manifest.permission.CAMERA)
+
+
+
     }
 
     override fun onResume() {
@@ -98,70 +135,73 @@ class MainActivity : ComponentActivity() {
 
             analysis.setAnalyzer(executor) { proxy ->
                 try {
-                    // co 3 klatkę
-                    frameCount = (frameCount + 1) % 5
+                    // ewentualne rzadsze klatki (chcesz -> zostaw)
+                    frameCount = (frameCount + 1) % 3
                     if (frameCount != 0) { proxy.close(); return@setAnalyzer }
 
-                    // konwersja do bitmapy
                     var bmp = proxy.toBitmap(yuv) ?: run { proxy.close(); return@setAnalyzer }
-
-                    // obrót zgodnie z rotacją z sensora
                     val rot = proxy.imageInfo.rotationDegrees
                     bmp = bmp.rotate(rot)
 
-                    // konwersja do Mat i gray
-                    val mat = Mat().also { Utils.bitmapToMat(bmp, it) }
-                    val gray = Mat().also {
-                        Imgproc.cvtColor(mat, it, Imgproc.COLOR_RGBA2GRAY)
-                        Imgproc.equalizeHist(it, it)
+                    // Z BItmapy robimy MPImage
+                    val mpImage = BitmapImageBuilder(bmp).build()
+                    val timestampMs = SystemClock.uptimeMillis()
+
+                    // FaceLandmarker w trybie VIDEO
+                    val result: FaceLandmarkerResult =
+                        faceLandmarker.detectForVideo(mpImage, timestampMs)
+
+                    val faceLandmarksList = result.faceLandmarks()
+                    if (faceLandmarksList.isEmpty()) {
+                        runOnUiThread {
+                            overlay.setBoxes(emptyList())
+                            smileText.text = "Brak twarzy"
+                        }
+                        return@setAnalyzer
                     }
 
-                    // detekcja twarzy
-                    val faces = MatOfRect()
-                    faceCascade.detectMultiScale(
-                        gray, faces,
-                        1.1, 5, 0,
-                        org.opencv.core.Size(80.0, 80.0),
-                        org.opencv.core.Size()
+                    // Bierzemy pierwszą twarz
+                    val landmarks = faceLandmarksList[0]  // lista 468 (lub 478) punktów
+
+                    // wyciągamy tylko usta, tak jak w Pythonie
+                    val lipsPoints = LipsFeatureExtractor.LIPS_INDICES.map { idx ->
+                        val lm = landmarks[idx]
+                        PointF(lm.x(), lm.y())
+                    }
+
+                    // liczymy cechy
+                    val features = LipsFeatureExtractor.computeFeaturesFromLips(lipsPoints)
+
+                    // predykcja SVM
+                    val smiling = svm.isSmiling(features)
+                    val label = if (smiling) "Smiling" else "Not Smiling"
+                    val status = label
+
+                    // prostokąt na overlayu: bierzemy min/max ust (normalizowane) i skaluje do PreviewView
+                    val minX = lipsPoints.minOf { it.x }
+                    val maxX = lipsPoints.maxOf { it.x }
+                    val minY = lipsPoints.minOf { it.y }
+                    val maxY = lipsPoints.maxOf { it.y }
+
+                    val w = previewView.width.toFloat()
+                    val h = previewView.height.toFloat()
+
+                    // jeśli preview jest lustrzane dla front kamerki, możemy odbić X:
+                    val leftPx = w * (1f - maxX)  // lustrzane odbicie
+                    val rightPx = w * (1f - minX)
+                    val topPx = h * minY
+                    val bottomPx = h * maxY
+
+                    val rectOnOverlay = android.graphics.RectF(
+                        leftPx,
+                        topPx,
+                        rightPx,
+                        bottomPx
                     )
 
-                    // skalowanie współrzędnych do rozmiaru PreviewView
-                    val scaleX = previewView.width.toFloat() / gray.width()
-                    val scaleY = previewView.height.toFloat() / gray.height()
-
-                    val boxes = mutableListOf<OverlayView.Box>()
-                    var status = "Brak twarzy"
-
-                    for (r in faces.toArray()) {
-                        val rectOnOverlay = RectF(
-                            r.x * scaleX,
-                            r.y * scaleY,
-                            (r.x + r.width) * scaleX,
-                            (r.y + r.height) * scaleY
-                        )
-
-                        // dla przedniej kamery – lustrzane odbicie
-                        val mirroredLeft = previewView.width - rectOnOverlay.right
-                        val mirroredRight = previewView.width - rectOnOverlay.left
-                        rectOnOverlay.set(mirroredLeft, rectOnOverlay.top, mirroredRight, rectOnOverlay.bottom)
-
-                        // wycięcie twarzy do predykcji
-                        val faceBmp = Bitmap.createBitmap(
-                            bmp,
-                            r.x.coerceAtLeast(0),
-                            r.y.coerceAtLeast(0),
-                            r.width.coerceAtMost(bmp.width - r.x),
-                            r.height.coerceAtMost(bmp.height - r.y)
-                        )
-
-                        val grayFace = faceBmp.toGrayscale()
-                        val (pNot, pYes) = smile.predictSmile(grayFace)
-                        val smiling = pYes > pNot
-                        val label = if (smiling) "Smiling" else "Not Smiling"
-                        status = "$label (pSmile=${String.format("%.2f", pYes)})"
-
-                        boxes.add(OverlayView.Box(rectOnOverlay, label, smiling))
-                    }
+                    val boxes = listOf(
+                        OverlayView.Box(rectOnOverlay, label, smiling)
+                    )
 
                     runOnUiThread {
                         overlay.setBoxes(boxes)
@@ -171,6 +211,7 @@ class MainActivity : ComponentActivity() {
                     proxy.close()
                 }
             }
+
 
             provider.unbindAll()
             provider.bindToLifecycle(this, CameraSelector.DEFAULT_FRONT_CAMERA, preview, analysis)
