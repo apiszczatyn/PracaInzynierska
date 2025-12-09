@@ -15,6 +15,7 @@ import android.content.pm.PackageManager
 import android.graphics.*
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.util.Size
 import android.widget.TextView
 import androidx.activity.ComponentActivity
@@ -40,7 +41,7 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.view.transform.CoordinateTransform
 class MainActivity : ComponentActivity() {
 
-     private lateinit var faceLandmarker: FaceLandmarker
+    private lateinit var faceLandmarker: FaceLandmarker
     private lateinit var svm: SmileSvmInterpreter
 
     private lateinit var previewView: PreviewView
@@ -191,7 +192,7 @@ class MainActivity : ComponentActivity() {
                     val rightPx = w * (1f - minX)
                     val topPx = h * minY
                     val bottomPx = h * maxY
-
+                    Log.d("LipsFeatures", "features=${features.joinToString()}")
                     val rectOnOverlay = android.graphics.RectF(
                         leftPx,
                         topPx,
@@ -207,6 +208,7 @@ class MainActivity : ComponentActivity() {
                         overlay.setBoxes(boxes)
                         smileText.text = status
                     }
+
                 } finally {
                     proxy.close()
                 }

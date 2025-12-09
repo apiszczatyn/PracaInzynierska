@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.licznikusmiechow"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.licznikusmiechow"
@@ -42,7 +42,7 @@ kotlin { jvmToolchain(21) }
 
 dependencies {
     // face landmarker
-    implementation ("com.google.mediapipe:tasks-vision:latest.release")
+    implementation ("com.google.mediapipe:tasks-vision:0.10.29")
 
     // Desugaring (dla nowszych API Javy na starszych Androidach)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")

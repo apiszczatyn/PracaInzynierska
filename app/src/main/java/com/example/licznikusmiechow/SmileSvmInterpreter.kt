@@ -1,6 +1,7 @@
 package com.example.licznikusmiechow
 
 import android.content.Context
+import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.exp
@@ -12,10 +13,14 @@ data class SvmModel(
     val dualCoef: DoubleArray,
     val intercept: Double,
     val gamma: Double,
-    val classes: Array<String>  // bo w .joblib masz etykiety stringowe
+    val classes: Array<String>
 )
 
 class SmileSvmInterpreter(context: Context) {
+
+    companion object {
+        private const val TAG = "SmileSvmInterpreter"
+    }
 
     private val model: SvmModel = loadFromAssets(context, "svm_smile_model.json")
 
@@ -45,11 +50,17 @@ class SmileSvmInterpreter(context: Context) {
             classesJson.get(i).toString()
         }
 
+        Log.d(TAG, "Loaded SVM model: " +
+                "features=${mean.size}, SVs=${supportVectors.size}, classes=${classes.toList()}")
+
         return SvmModel(mean, scale, supportVectors, dualCoef, intercept, gamma, classes)
     }
 
-    // features = [mar, smile_curve, asym, spread_x, spread_y]
-    fun predictLabel(features: FloatArray): String {
+    /**
+     * Zwraca surową wartość funkcji decyzyjnej f(x).
+     * (to samo co decision_function w sklearn)
+     */
+    fun decisionScore(features: FloatArray): Double {
         require(features.size == model.mean.size) {
             "Zły rozmiar wektora cech: ${features.size}, oczekiwano ${model.mean.size}"
         }
@@ -73,13 +84,25 @@ class SmileSvmInterpreter(context: Context) {
         }
         val f = sum + model.intercept
 
-        // SVC binary: f>=0 -> classes[1], inaczej classes[0]
-        return if (f >= 0.0) model.classes[1] else model.classes[0]
+        Log.d(TAG, "features=${features.joinToString()}, score=$f")
+
+        return f
+    }
+
+    fun predictLabel(features: FloatArray): String {
+        val f = decisionScore(features)
+        // klasy w sklearn są POSORTOWANE, w binarnym SVC:
+        // f >= 0 -> classes[1],  f < 0 -> classes[0]
+        val label = if (f >= 0.0) model.classes[1] else model.classes[0]
+        Log.d(TAG, "predicted label=$label")
+        return label
     }
 
     fun isSmiling(features: FloatArray): Boolean {
-        val label = predictLabel(features)
-        // dostosuj do swoich etykiet z treningu
-        return label.contains("smil", ignoreCase = true) || label == "1"
+        val f = decisionScore(features)
+        // NIE opieramy się na stringu, tylko na znaku f:
+        val smiling = f >= 0.0
+        Log.d(TAG, "isSmiling=$smiling (f=$f)")
+        return smiling
     }
 }
