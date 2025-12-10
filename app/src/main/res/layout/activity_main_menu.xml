@@ -1,47 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="24dp"
-    android:background="#FFFFFF">
+    android:layout_height="match_parent">
+    <ImageView
+        android:id="@+id/bgImage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/bg_space"
+        android:scaleType="centerCrop"
+        android:adjustViewBounds="true"
+        android:contentDescription="Theme" />
+    <FrameLayout
+        android:id="@+id/starsLayer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="false"
+        android:focusable="false" />
 
-    <!-- Logo lub nazwa aplikacji -->
-    <TextView
-        android:id="@+id/appTitle"
+
+    <!-- Koło zębate (ustawienia) w prawym górnym rogu -->
+    <ImageView
+        android:id="@+id/settingsButton"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_margin="16dp"
+        android:src="@drawable/ic_space_settings"
+        android:contentDescription="Ustawienia"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <!-- Środkowa część z tytułem i przyciskami -->
+    <LinearLayout
+        android:id="@+id/centerContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Licznik Uśmiechów"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:textColor="#000000"
-        android:layout_marginBottom="48dp" />
+        android:layout_centerInParent="true"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="24dp">
 
-    <!-- Przycisk rozpocznij -->
-    <Button
-        android:id="@+id/startButton"
-        android:layout_width="200dp"
-        android:layout_height="wrap_content"
-        android:text="Rozpocznij"
-        android:textSize="18sp"
-        android:layout_marginBottom="24dp" />
-    <!-- Przycisk ustawień -->
-    <Button
-        android:id="@+id/settingsButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Ustawienia"
-        android:layout_marginTop="16dp" />
+        <!-- Tytuł aplikacji -->
+<!--        <TextView-->
+<!--            android:id="@+id/appTitle"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_marginBottom="32dp"-->
+<!--            android:text="Licznik Uśmiechów"-->
+<!--            android:textColor="#FFFFFF"-->
+<!--            android:textSize="28sp"-->
+<!--            android:textStyle="bold" />-->
 
-    <!-- Przycisk wyjścia -->
-    <Button
-        android:id="@+id/exitButton"
-        android:layout_width="150dp"
-        android:layout_height="wrap_content"
-        android:text="Wyjście"
-        android:textSize="16sp"
-        android:backgroundTint="#D32F2F"
-        android:textColor="#FFFFFF" />
+        <!-- Duży przycisk START jako obrazek -->
+        <ImageView
+            android:id="@+id/startButton"
+            android:layout_width="350dp"
+            android:layout_height="350dp"
+            android:src="@drawable/btn_start_space"
+            android:contentDescription="Start"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginBottom="24dp" />
 
-</LinearLayout>
+        <!-- Przycisk wyjścia (na razie zwykły) -->
+        <Button
+            android:id="@+id/exitButton"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:text="Wyjście"
+            android:textSize="16sp"
+            android:backgroundTint="#D32F2F"
+            android:textColor="#FFFFFF" />
+
+    </LinearLayout>
+
+</RelativeLayout>
