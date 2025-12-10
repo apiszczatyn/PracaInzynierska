@@ -55,6 +55,9 @@ class MainActivity : ComponentActivity() {
     private val executor = Executors.newSingleThreadExecutor()
     private var frameCount = 0
 
+    private lateinit var smileEmoji: TextView
+    private var lastSmilingState: Boolean = false
+
 
 
     private fun initFaceLandmarker() {
@@ -90,6 +93,7 @@ class MainActivity : ComponentActivity() {
         previewView = findViewById(R.id.previewView)
         overlay = findViewById(R.id.overlay)
         smileText = findViewById(R.id.smileText)
+        smileEmoji = findViewById(R.id.smileEmoji)
 
         //smile = SmileInterpreter(this)
         yuv = YuvToRgbConverter(this)
@@ -207,6 +211,34 @@ class MainActivity : ComponentActivity() {
                     runOnUiThread {
                         overlay.setBoxes(boxes)
                         smileText.text = status
+
+                        if (smiling && !lastSmilingState) {
+                            // przejście z brak uśmiechu -> uśmiech : zrób "pop" animację
+                            smileEmoji.animate()
+                                .alpha(1f)
+                                .scaleX(1.2f)
+                                .scaleY(1.2f)
+                                .setDuration(200)
+                                .withEndAction {
+                                    // delikatne cofnięcie do 1.0, żeby nie była za duża
+                                    smileEmoji.animate()
+                                        .scaleX(1f)
+                                        .scaleY(1f)
+                                        .setDuration(150)
+                                        .start()
+                                }
+                                .start()
+                        } else if (!smiling && lastSmilingState) {
+                            // przejście z uśmiechu -> brak uśmiechu: wygaszamy emotkę
+                            smileEmoji.animate()
+                                .alpha(0f)
+                                .scaleX(0.8f)
+                                .scaleY(0.8f)
+                                .setDuration(200)
+                                .start()
+                        }
+
+                        lastSmilingState = smiling
                     }
 
                 } finally {

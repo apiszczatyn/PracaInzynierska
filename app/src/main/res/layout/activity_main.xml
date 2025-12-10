@@ -25,6 +25,20 @@
         app:layout_constraintEnd_toEndOf="@id/previewView"/>
 
     <TextView
+        android:id="@+id/smileEmoji"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="😄"
+        android:textSize="100sp"
+        android:alpha="0"
+        android:scaleX="0.8"
+        android:scaleY="0.8"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="40dp" />
+
+    <TextView
         android:id="@+id/smileText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
