@@ -91,7 +91,7 @@ class SmileSvmInterpreter(private val context: Context) {
             sum += model.dualCoef[i] * k
         }
         val f = sum + model.intercept
-        Log.d(TAG, "features=${features.joinToString()}, score=$f")
+//        Log.d(TAG, "features=${features.joinToString()}, score=$f")
         return f
     }
 
@@ -99,7 +99,8 @@ class SmileSvmInterpreter(private val context: Context) {
         val f = decisionScore(features)
         val threshold = getThreshold()
         val smiling = f >= threshold
-        Log.d(TAG, "isSmiling=$smiling (f=$f, threshold=$threshold)")
+//        Log.d(TAG, "isSmiling=$smiling (f=$f, threshold=$threshold)")
+        Log.d(TAG,"Score $f , isSmiling=$smiling")
         return smiling
     }
 }

@@ -25,14 +25,6 @@ import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
-import org.opencv.core.Core
-import org.opencv.android.OpenCVLoader
-import org.opencv.android.Utils
-import org.opencv.core.Mat
-import org.opencv.core.MatOfRect
-import org.opencv.core.Size as CvSize
-import org.opencv.imgproc.Imgproc
-import org.opencv.objdetect.CascadeClassifier
 import java.io.File
 import java.util.concurrent.Executors
 import kotlin.math.min
@@ -50,7 +42,6 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var smile: SmileInterpreter
     private lateinit var yuv: YuvToRgbConverter
-    private lateinit var faceCascade: CascadeClassifier
 
     private val executor = Executors.newSingleThreadExecutor()
     private var frameCount = 0
@@ -62,7 +53,7 @@ class MainActivity : ComponentActivity() {
 
     private fun initFaceLandmarker() {
         val baseOptions = BaseOptions.builder()
-            .setModelAssetPath("face_landmarker.task") // plik w assets
+            .setModelAssetPath("face_landmarker.task")
             .build()
 
         val options = FaceLandmarker.FaceLandmarkerOptions.builder()
@@ -88,8 +79,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        check(OpenCVLoader.initDebug()) { "OpenCV init failed" }
-
         previewView = findViewById(R.id.previewView)
         overlay = findViewById(R.id.overlay)
         smileText = findViewById(R.id.smileText)
@@ -102,14 +91,9 @@ class MainActivity : ComponentActivity() {
         initFaceLandmarker()
 
 
-        val cascadeFile: File = AssetUtils.copyAssetToCache(this, "haarcascade_frontalface_default.xml")
-        faceCascade = CascadeClassifier(cascadeFile.absolutePath)
-
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
             == PackageManager.PERMISSION_GRANTED) startCamera()
         else askCamera.launch(Manifest.permission.CAMERA)
-
-
 
     }
 
@@ -179,8 +163,9 @@ class MainActivity : ComponentActivity() {
 
                     // predykcja SVM
                     val smiling = svm.isSmiling(features)
+                    val score = svm.decisionScore(features)
                     val label = if (smiling) "Smiling" else "Not Smiling"
-                    val status = label
+                    val status = "$label   (score = ${"%.2f".format(score)})"
 
                     // prostokąt na overlayu: bierzemy min/max ust (normalizowane) i skaluje do PreviewView
                     val minX = lipsPoints.minOf { it.x }
@@ -196,7 +181,7 @@ class MainActivity : ComponentActivity() {
                     val rightPx = w * (1f - minX)
                     val topPx = h * minY
                     val bottomPx = h * maxY
-                    Log.d("LipsFeatures", "features=${features.joinToString()}")
+//                    Log.d("LipsFeatures", "features=${features.joinToString()}")
                     val rectOnOverlay = android.graphics.RectF(
                         leftPx,
                         topPx,
@@ -271,13 +256,4 @@ private fun Bitmap.rotate(deg: Int): Bitmap {
 private fun Bitmap.mirrorHorizontally(): Bitmap {
     val m = Matrix().apply { preScale(-1f, 1f) }
     return Bitmap.createBitmap(this, 0, 0, width, height, m, true)
-}
-
-private fun Bitmap.toGrayscale(): Bitmap {
-    val out = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-    val c = Canvas(out)
-    val cm = ColorMatrix().apply { setSaturation(0f) }
-    val p = Paint().apply { colorFilter = ColorMatrixColorFilter(cm) }
-    c.drawBitmap(this, 0f, 0f, p)
-    return out
 }
