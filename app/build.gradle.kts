@@ -59,7 +59,7 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite:2.17.0")
 
     // OpenCV jako moduł (z logów: :opencv)
-    implementation(project(":opencv"))
+    //implementation(project(":opencv"))
     // Testy jednostkowe (JUnit4)
     testImplementation("junit:junit:4.13.2")
 

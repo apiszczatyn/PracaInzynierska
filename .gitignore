@@ -32,3 +32,4 @@ gen/
 # Windows thumbnail db
 Thumbs.db
 # OpenCV
+/opencv/
