@@ -1,33 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/settingsRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <!-- Tło kosmos -->
     <ImageView
-        android:id="@+id/bgImage"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:src="@drawable/bg_space"
-        android:scaleType="centerCrop"
-        android:adjustViewBounds="true" />
+        android:scaleType="centerCrop" />
 
-    <!-- Warstwa animowanych gwiazd -->
+    <!-- Gwiazdy -->
     <FrameLayout
         android:id="@+id/starsLayer"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clickable="false"
-        android:focusable="false" />
+        android:layout_height="match_parent" />
 
-    <!-- Przyciemnienie (~70%) -->
+    <!-- Przyciemnienie -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#99000000" />
+        android:background="#B3000000" />
 
-    <!-- Zawartość ustawień -->
+    <!-- UI -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -40,23 +35,51 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Czułość wykrywania uśmiechu"
+            android:textColor="@android:color/white"
             android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@android:color/white" />
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/thresholdValueText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Próg: 0.00"
-            android:layout_marginTop="8dp"
-            android:textColor="@android:color/white" />
+            android:textColor="@android:color/white"
+            android:layout_marginTop="8dp" />
 
         <SeekBar
             android:id="@+id/thresholdSeekBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp" />
+
+        <!-- -  RESET  + -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="16dp">
+
+            <Button
+                android:id="@+id/btnMinus"
+                android:layout_width="58dp"
+                android:layout_height="48dp"
+                android:text="-" />
+
+            <Button
+                android:id="@+id/btnReset"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="RESET"
+                android:layout_marginHorizontal="16dp" />
+
+            <Button
+                android:id="@+id/btnPlus"
+                android:layout_width="58dp"
+                android:layout_height="48dp"
+                android:text="+" />
+        </LinearLayout>
 
     </LinearLayout>
 

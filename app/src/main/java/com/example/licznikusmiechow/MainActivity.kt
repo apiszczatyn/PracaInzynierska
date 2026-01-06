@@ -257,3 +257,4 @@ private fun Bitmap.mirrorHorizontally(): Bitmap {
     val m = Matrix().apply { preScale(-1f, 1f) }
     return Bitmap.createBitmap(this, 0, 0, width, height, m, true)
 }
+
