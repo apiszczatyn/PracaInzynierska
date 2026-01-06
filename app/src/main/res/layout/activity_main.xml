@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@android:color/black">
+    android:layout_height="match_parent">
 
-    <!-- PODGLĄD KAMERY (DZIAŁA CAŁY CZAS) -->
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
         android:layout_width="0dp"
@@ -16,56 +14,30 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:implementationMode="performance" />
+        app:implementationMode="performance"/>
 
-    <!-- RAKIETA Z OKNEM (START, ZOOM-IN) -->
-    <ImageView
-        android:id="@+id/rocketWithWindow"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/ic_rocket_space"
-        android:adjustViewBounds="true"
-        android:scaleType="fitCenter"
-        android:alpha="1"
-        android:translationX="0dp"
-        android:translationY="0dp"
-        android:scaleX="1"
-        android:scaleY="1"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- RAKIETA BEZ OKNA (PO ZOOM-IN, RAMKA / MASKA) -->
-    <ImageView
-        android:id="@+id/rocketNoWindow"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/ic_rocket_space_no_window"
-        android:adjustViewBounds="true"
-        android:scaleType="fitCenter"
-        android:alpha="0"
-        android:scaleX="1"
-        android:scaleY="1"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- OVERLAY (np. ramki, debug, później) -->
     <com.example.licznikusmiechow.OverlayView
         android:id="@+id/overlay"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="@id/previewView"
+        app:layout_constraintBottom_toBottomOf="@id/previewView"
+        app:layout_constraintStart_toStartOf="@id/previewView"
+        app:layout_constraintEnd_toEndOf="@id/previewView"/>
+    <ImageView
+        android:id="@+id/bgImage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/bg_space"
+        android:scaleType="centerCrop"
+        android:adjustViewBounds="true"
+        android:contentDescription="Theme" />
+    <FrameLayout
+        android:id="@+id/starsLayer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:clickable="false"
-        android:focusable="false"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!--
-    EMOJI – WYŁĄCZONE NA TEN ETAP
+        android:focusable="false" />
     <TextView
         android:id="@+id/smileEmoji"
         android:layout_width="wrap_content"
@@ -73,13 +45,13 @@
         android:text="😄"
         android:textSize="100sp"
         android:alpha="0"
+        android:scaleX="0.8"
+        android:scaleY="0.8"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="40dp" />
-    -->
 
-    <!-- TEKST STATUSU -->
     <TextView
         android:id="@+id/smileText"
         android:layout_width="wrap_content"
@@ -88,8 +60,29 @@
         android:background="#80000000"
         android:textColor="@android:color/white"
         android:textSize="18sp"
-        android:text="…"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        android:text="…" />
+
+    <FrameLayout
+        android:id="@+id/rocketContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:id="@+id/cameraMask"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/ic_rocket_space_no_window"
+            android:scaleType="center"
+            android:scaleX="1.0"
+            android:scaleY="1.0"/>
+    </FrameLayout>
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
