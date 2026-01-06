@@ -1,23 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- TŁO – ramka dookoła -->
+    <!-- TŁO -->
     <ImageView
         android:id="@+id/bgImage"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:src="@drawable/bg_space"
         android:scaleType="centerCrop"
-        android:adjustViewBounds="true"
         android:contentDescription="Theme" />
-    <FrameLayout
-        android:id="@+id/starsLayer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clickable="false"
-        android:focusable="false" />
 
     <!-- OBSZAR KAMERY -->
     <FrameLayout
@@ -38,7 +32,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-        <TextView
+<!--        <TextView
             android:id="@+id/smileText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -47,18 +41,17 @@
             android:textColor="@android:color/white"
             android:textSize="18sp"
             android:background="#66000000"
-            android:padding="8dp" />
-
-        <TextView
-            android:id="@+id/smileEmoji"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="top|center"
-            android:text="😄"
-            android:textSize="64sp"
-            android:alpha="0" />
+            android:padding="8dp" />-->
 
     </FrameLayout>
 
+    <!-- effects -->
+    <FrameLayout
+        android:id="@+id/starsLayer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="false"
+        android:focusable="false"
+        android:elevation="50dp" />
 
 </FrameLayout>
