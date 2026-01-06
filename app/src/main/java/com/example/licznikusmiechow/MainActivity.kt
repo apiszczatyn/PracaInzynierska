@@ -6,17 +6,15 @@ import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.core.BaseOptions
 
-import android.graphics.PointF
-import android.os.SystemClock
-
-
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.*
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
+import android.os.SystemClock
 import android.util.Size
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,49 +23,29 @@ import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
-import java.io.File
 import java.util.concurrent.Executors
 import kotlin.math.min
-import android.widget.ImageView
-import androidx.camera.core.ImageProxy
-import androidx.camera.view.transform.CoordinateTransform
+import kotlin.random.Random
+
 class MainActivity : ComponentActivity() {
 
     private lateinit var faceLandmarker: FaceLandmarker
     private lateinit var svm: SmileSvmInterpreter
+    private lateinit var yuv: YuvToRgbConverter
 
     private lateinit var previewView: PreviewView
     private lateinit var overlay: OverlayView
     private lateinit var smileText: TextView
-
-    private lateinit var smile: SmileInterpreter
-    private lateinit var yuv: YuvToRgbConverter
+    private lateinit var smileEmoji: TextView
+    private lateinit var effectsLayer: FrameLayout
 
     private val executor = Executors.newSingleThreadExecutor()
     private var frameCount = 0
+    private var lastSmilingState = false
 
-    private lateinit var smileEmoji: TextView
-    private var lastSmilingState: Boolean = false
-
-
-
-    private fun initFaceLandmarker() {
-        val baseOptions = BaseOptions.builder()
-            .setModelAssetPath("face_landmarker.task")
-            .build()
-
-        val options = FaceLandmarker.FaceLandmarkerOptions.builder()
-            .setBaseOptions(baseOptions)
-            .setMinFaceDetectionConfidence(0.3f)
-            .setMinFacePresenceConfidence(0.3f)
-            .setMinTrackingConfidence(0.3f)
-            .setRunningMode(RunningMode.VIDEO)
-            .setNumFaces(1)
-            .build()
-
-        faceLandmarker = FaceLandmarker.createFromOptions(this, options)
-    }
-
+    // cooldown animacji
+    private var lastEffectTime = 0L
+    private val EFFECT_COOLDOWN_MS = 1200L
 
     @RequiresApi(Build.VERSION_CODES.O)
     private val askCamera = registerForActivityResult(
@@ -83,29 +61,31 @@ class MainActivity : ComponentActivity() {
         overlay = findViewById(R.id.overlay)
         smileText = findViewById(R.id.smileText)
         smileEmoji = findViewById(R.id.smileEmoji)
+        effectsLayer = findViewById(R.id.starsLayer)
 
-        //smile = SmileInterpreter(this)
         yuv = YuvToRgbConverter(this)
-
         svm = SmileSvmInterpreter(this)
         initFaceLandmarker()
 
-
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            == PackageManager.PERMISSION_GRANTED) startCamera()
-        else askCamera.launch(Manifest.permission.CAMERA)
-
+            == PackageManager.PERMISSION_GRANTED
+        ) startCamera() else askCamera.launch(Manifest.permission.CAMERA)
     }
 
-    override fun onResume() {
-        super.onResume()
-        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    private fun initFaceLandmarker() {
+        val options = FaceLandmarker.FaceLandmarkerOptions.builder()
+            .setBaseOptions(
+                BaseOptions.builder()
+                    .setModelAssetPath("face_landmarker.task")
+                    .build()
+            )
+            .setRunningMode(RunningMode.VIDEO)
+            .setNumFaces(1)
+            .build()
+
+        faceLandmarker = FaceLandmarker.createFromOptions(this, options)
     }
 
-    override fun onPause() {
-        super.onPause()
-        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-    }
     @RequiresApi(Build.VERSION_CODES.O)
     private fun startCamera() {
         val providerFuture = ProcessCameraProvider.getInstance(this)
@@ -119,110 +99,44 @@ class MainActivity : ComponentActivity() {
             val analysis = ImageAnalysis.Builder()
                 .setTargetResolution(Size(640, 480))
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .setOutputImageRotationEnabled(true)
                 .build()
 
             analysis.setAnalyzer(executor) { proxy ->
                 try {
-                    // ewentualne rzadsze klatki (chcesz -> zostaw)
                     frameCount = (frameCount + 1) % 3
-                    if (frameCount != 0) { proxy.close(); return@setAnalyzer }
+                    if (frameCount != 0) return@setAnalyzer
 
-                    var bmp = proxy.toBitmap(yuv) ?: run { proxy.close(); return@setAnalyzer }
-                    val rot = proxy.imageInfo.rotationDegrees
-                    bmp = bmp.rotate(rot)
+                    var bmp = proxy.toBitmap(yuv) ?: return@setAnalyzer
+                    bmp = bmp.rotate(proxy.imageInfo.rotationDegrees)
 
-                    // Z BItmapy robimy MPImage
                     val mpImage = BitmapImageBuilder(bmp).build()
-                    val timestampMs = SystemClock.uptimeMillis()
-
-                    // FaceLandmarker w trybie VIDEO
                     val result: FaceLandmarkerResult =
-                        faceLandmarker.detectForVideo(mpImage, timestampMs)
+                        faceLandmarker.detectForVideo(mpImage, SystemClock.uptimeMillis())
 
-                    val faceLandmarksList = result.faceLandmarks()
-                    if (faceLandmarksList.isEmpty()) {
-                        runOnUiThread {
-                            overlay.setBoxes(emptyList())
-                            smileText.text = "Brak twarzy"
-                        }
-                        return@setAnalyzer
+                    if (result.faceLandmarks().isEmpty()) return@setAnalyzer
+
+                    val landmarks = result.faceLandmarks()[0]
+                    val lips = LipsFeatureExtractor.LIPS_INDICES.map {
+                        PointF(landmarks[it].x(), landmarks[it].y())
                     }
 
-                    // Bierzemy pierwszą twarz
-                    val landmarks = faceLandmarksList[0]  // lista 468 (lub 478) punktów
-
-                    // wyciągamy tylko usta, tak jak w Pythonie
-                    val lipsPoints = LipsFeatureExtractor.LIPS_INDICES.map { idx ->
-                        val lm = landmarks[idx]
-                        PointF(lm.x(), lm.y())
-                    }
-
-                    // liczymy cechy
-                    val features = LipsFeatureExtractor.computeFeaturesFromLips(lipsPoints)
-
-                    // predykcja SVM
+                    val features = LipsFeatureExtractor.computeFeaturesFromLips(lips)
                     val smiling = svm.isSmiling(features)
-                    val score = svm.decisionScore(features)
-                    val label = if (smiling) "Smiling" else "Not Smiling"
-                    val status = "$label   (score = ${"%.2f".format(score)})"
 
-                    // prostokąt na overlayu: bierzemy min/max ust (normalizowane) i skaluje do PreviewView
-                    val minX = lipsPoints.minOf { it.x }
-                    val maxX = lipsPoints.maxOf { it.x }
-                    val minY = lipsPoints.minOf { it.y }
-                    val maxY = lipsPoints.maxOf { it.y }
+                    val minX = lips.minOf { it.x }
+                    val maxX = lips.maxOf { it.x }
+                    val minY = lips.minOf { it.y }
 
                     val w = previewView.width.toFloat()
                     val h = previewView.height.toFloat()
 
-                    // jeśli preview jest lustrzane dla front kamerki, możemy odbić X:
-                    val leftPx = w * (1f - maxX)  // lustrzane odbicie
-                    val rightPx = w * (1f - minX)
-                    val topPx = h * minY
-                    val bottomPx = h * maxY
-//                    Log.d("LipsFeatures", "features=${features.joinToString()}")
-                    val rectOnOverlay = android.graphics.RectF(
-                        leftPx,
-                        topPx,
-                        rightPx,
-                        bottomPx
-                    )
-
-                    val boxes = listOf(
-                        OverlayView.Box(rectOnOverlay, label, smiling)
-                    )
+                    val mouthCenterX = w * (1f - (minX + maxX) / 2f)
+                    val mouthTopY = h * minY
 
                     runOnUiThread {
-                        overlay.setBoxes(boxes)
-                        smileText.text = status
-
                         if (smiling && !lastSmilingState) {
-                            // przejście z brak uśmiechu -> uśmiech : zrób "pop" animację
-                            smileEmoji.animate()
-                                .alpha(1f)
-                                .scaleX(1.2f)
-                                .scaleY(1.2f)
-                                .setDuration(200)
-                                .withEndAction {
-                                    // delikatne cofnięcie do 1.0, żeby nie była za duża
-                                    smileEmoji.animate()
-                                        .scaleX(1f)
-                                        .scaleY(1f)
-                                        .setDuration(150)
-                                        .start()
-                                }
-                                .start()
-                        } else if (!smiling && lastSmilingState) {
-                            // przejście z uśmiechu -> brak uśmiechu: wygaszamy emotkę
-                            smileEmoji.animate()
-                                .alpha(0f)
-                                .scaleX(0.8f)
-                                .scaleY(0.8f)
-                                .setDuration(200)
-                                .start()
+                            triggerRandomEffect(mouthCenterX, mouthTopY)
                         }
-
                         lastSmilingState = smiling
                     }
 
@@ -231,17 +145,137 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-
             provider.unbindAll()
-            provider.bindToLifecycle(this, CameraSelector.DEFAULT_FRONT_CAMERA, preview, analysis)
+            provider.bindToLifecycle(
+                this,
+                CameraSelector.DEFAULT_FRONT_CAMERA,
+                preview,
+                analysis
+            )
         }, ContextCompat.getMainExecutor(this))
     }
 
+    // ====================== EFEKTY ======================
+
+    private fun triggerRandomEffect(x: Float, y: Float) {
+        val now = SystemClock.uptimeMillis()
+        if (now - lastEffectTime < EFFECT_COOLDOWN_MS) return
+        lastEffectTime = now
+
+        when (Random.nextInt(10)) {
+            0 -> starBurstFromMouth(x, y)
+            1 -> haloOverHead(x, y - 200)
+            2 -> flyRocket()
+            3 -> flyPlanet()
+            4 -> starRain()
+            5 -> orbitPlanet(x, y - 220)
+            6 -> sideStarBurst(x, y)
+            7 -> rocketFromMouth(x, y)
+            8 -> planetPop()
+            else -> faceStarPop(x, y)
+        }
+    }
+
+    private fun starBurstFromMouth(x: Float, y: Float) =
+        repeatStars(12, R.drawable.ic_star_space, x, y, -400..400, -600..-200)
+
+    private fun haloOverHead(x: Float, y: Float) =
+        repeatStars(8, R.drawable.ic_star_space, x, y, -120..120, -80..80, 1200)
+
+    private fun flyRocket() = flyAcross(R.drawable.ic_rocket_space)
+
+    private fun flyPlanet() =
+        flyAcross(
+            listOf(
+                R.drawable.ic_planet_space,
+                R.drawable.ic_planet2_space,
+                R.drawable.ic_planet3_space
+            ).random()
+        )
+
+    private fun starRain() =
+        repeatStars(15, R.drawable.ic_star_space,
+            Random.nextFloat() * effectsLayer.width,
+            -50f, -50..50, 800..1200
+        )
+
+    private fun orbitPlanet(x: Float, y: Float) {
+        val planet = spawnImage(R.drawable.ic_planet2_space, x - 80, y - 80, 160)
+        planet.animate().rotationBy(360f).setDuration(1200)
+            .withEndAction { effectsLayer.removeView(planet) }.start()
+    }
+
+    private fun sideStarBurst(x: Float, y: Float) =
+        repeatStars(10, R.drawable.ic_star_space, x, y, -600..600, -50..50)
+
+    private fun rocketFromMouth(x: Float, y: Float) {
+        val rocket = spawnImage(R.drawable.ic_rocket_space, x - 70, y, 140)
+        rocket.animate().translationYBy(-800f).alpha(0f).setDuration(1000)
+            .withEndAction { effectsLayer.removeView(rocket) }.start()
+    }
+
+    private fun planetPop() {
+        val p = spawnImage(
+            R.drawable.ic_planet3_space,
+            effectsLayer.width / 2f - 100,
+            effectsLayer.height / 2f - 100,
+            200
+        )
+        p.scaleX = 0f; p.scaleY = 0f
+        p.animate().scaleX(1f).scaleY(1f).alpha(0f).setDuration(900)
+            .withEndAction { effectsLayer.removeView(p) }.start()
+    }
+
+    private fun faceStarPop(x: Float, y: Float) {
+        val s = spawnImage(R.drawable.ic_star_space, x - 20, y - 60, 40)
+        s.animate().scaleX(2f).scaleY(2f).alpha(0f).setDuration(600)
+            .withEndAction { effectsLayer.removeView(s) }.start()
+    }
+
+    // ====================== HELPERY ======================
+
+    private fun spawnImage(res: Int, x: Float, y: Float, size: Int): ImageView =
+        ImageView(this).apply {
+            setImageResource(res)
+            layoutParams = FrameLayout.LayoutParams(size, size)
+            this.x = x; this.y = y
+            effectsLayer.addView(this)
+        }
+
+    private fun repeatStars(
+        count: Int,
+        res: Int,
+        x: Float,
+        y: Float,
+        dxRange: IntRange,
+        dyRange: IntRange,
+        duration: Long = 900
+    ) {
+        repeat(count) {
+            val s = spawnImage(res, x, y, Random.nextInt(20, 40))
+            s.animate()
+                .translationXBy(dxRange.random().toFloat())
+                .translationYBy(dyRange.random().toFloat())
+                .alpha(0f)
+                .setDuration(duration)
+                .withEndAction { effectsLayer.removeView(s) }
+                .start()
+        }
+    }
+
+    private fun flyAcross(res: Int) {
+        val size = 160
+        val v = spawnImage(res, -size.toFloat(), effectsLayer.height * 0.5f, size)
+        v.animate().translationX(effectsLayer.width + size.toFloat())
+            .setDuration(1200)
+            .withEndAction { effectsLayer.removeView(v) }
+            .start()
+    }
 }
 
-// ---------- helpery ----------
+// ====================== EXTENSIONS ======================
 
-private fun ImageProxy.toBitmap(conv: YuvToRgbConverter): Bitmap? {
+private fun ImageProxy.toBitmap(conv: YuvToRgbConverter): Bitmap {
     val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     conv.yuvToRgb(this, bmp)
     return bmp
@@ -252,9 +286,3 @@ private fun Bitmap.rotate(deg: Int): Bitmap {
     val m = Matrix().apply { postRotate(deg.toFloat()) }
     return Bitmap.createBitmap(this, 0, 0, width, height, m, true)
 }
-
-private fun Bitmap.mirrorHorizontally(): Bitmap {
-    val m = Matrix().apply { preScale(-1f, 1f) }
-    return Bitmap.createBitmap(this, 0, 0, width, height, m, true)
-}
-
