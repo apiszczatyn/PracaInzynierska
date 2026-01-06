@@ -42,15 +42,15 @@
         android:padding="24dp">
 
         <!-- Tytuł aplikacji -->
-<!--        <TextView-->
-<!--            android:id="@+id/appTitle"-->
-<!--            android:layout_width="wrap_content"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:layout_marginBottom="32dp"-->
-<!--            android:text="Licznik Uśmiechów"-->
-<!--            android:textColor="#FFFFFF"-->
-<!--            android:textSize="28sp"-->
-<!--            android:textStyle="bold" />-->
+        <TextView
+            android:id="@+id/appTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="32dp"
+            android:text="Licznik Uśmiechów"
+            android:textColor="#FFFFFF"
+            android:textSize="28sp"
+            android:textStyle="bold" />
 
         <!-- Duży przycisk START jako obrazek -->
         <ImageView
@@ -64,14 +64,22 @@
             android:layout_marginBottom="24dp" />
 
         <!-- Przycisk wyjścia (na razie zwykły) -->
-        <Button
+<!--        <Button
             android:id="@+id/exitButton"
             android:layout_width="150dp"
             android:layout_height="wrap_content"
             android:text="Wyjście"
             android:textSize="16sp"
             android:backgroundTint="#D32F2F"
-            android:textColor="#FFFFFF" />
+            android:textColor="#FFFFFF" />-->
+        <ImageView
+            android:id="@+id/exitButton"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:src="@drawable/btn_exit_space"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginBottom="0dp" />
 
     </LinearLayout>
 

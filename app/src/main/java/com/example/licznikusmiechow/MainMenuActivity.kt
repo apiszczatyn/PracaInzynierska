@@ -37,7 +37,7 @@ class MainMenuActivity : AppCompatActivity() {
                 startX + startWidth,
                 startY + startHeight
             )
-            val exitButton: Button = findViewById(R.id.exitButton)
+            val exitButton: ImageView = findViewById(R.id.exitButton)
             val settingsButton: ImageView = findViewById(R.id.settingsButton)
             val starsLayer: ViewGroup = findViewById(R.id.starsLayer)
             createFloatingStars(starsLayer)
