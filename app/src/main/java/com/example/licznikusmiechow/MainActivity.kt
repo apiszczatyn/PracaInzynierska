@@ -76,8 +76,8 @@ class MainActivity : ComponentActivity() {
 
         previewView = findViewById(R.id.previewView)
         overlay = findViewById(R.id.overlay)
-        smileText = findViewById(R.id.smileText)
-        smileEmoji = findViewById(R.id.smileEmoji)
+/*        smileText = findViewById(R.id.smileText)
+        smileEmoji = findViewById(R.id.smileEmoji)*/
         rocketContainer = findViewById(R.id.rocketContainer)
 
         yuv = YuvToRgbConverter(this)
