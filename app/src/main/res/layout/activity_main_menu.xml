@@ -18,7 +18,7 @@
         android:focusable="false" />
 
 
-    <!-- Koło zębate (ustawienia) w prawym górnym rogu -->
+    <!-- ustawienia -->
     <ImageView
         android:id="@+id/settingsButton"
         android:layout_width="60dp"
@@ -71,6 +71,8 @@
             android:textSize="16sp"
             android:backgroundTint="#D32F2F"
             android:textColor="#FFFFFF" />-->
+
+        <!-- Przycisk wyjścia -->
         <ImageView
             android:id="@+id/exitButton"
             android:layout_width="100dp"

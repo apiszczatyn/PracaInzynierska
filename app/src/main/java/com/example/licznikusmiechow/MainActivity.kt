@@ -9,14 +9,15 @@ import com.google.mediapipe.tasks.core.BaseOptions
 import android.graphics.PointF
 import android.os.SystemClock
 
+
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.*
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.util.Size
 import android.widget.TextView
-import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
@@ -24,11 +25,12 @@ import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
+import java.io.File
 import java.util.concurrent.Executors
 import kotlin.math.min
-import android.view.animation.DecelerateInterpolator
+import android.widget.ImageView
 import androidx.camera.core.ImageProxy
-
+import androidx.camera.view.transform.CoordinateTransform
 class MainActivity : ComponentActivity() {
 
     private lateinit var faceLandmarker: FaceLandmarker
@@ -37,15 +39,17 @@ class MainActivity : ComponentActivity() {
     private lateinit var previewView: PreviewView
     private lateinit var overlay: OverlayView
     private lateinit var smileText: TextView
-    private lateinit var smileEmoji: TextView
-    private lateinit var rocketContainer: FrameLayout
 
+    private lateinit var smile: SmileInterpreter
     private lateinit var yuv: YuvToRgbConverter
 
     private val executor = Executors.newSingleThreadExecutor()
     private var frameCount = 0
-    private var lastSmilingState = false
-    private var rocketAnimated = false   // zabezpieczenie: animacja tylko raz
+
+    private lateinit var smileEmoji: TextView
+    private var lastSmilingState: Boolean = false
+
+
 
     private fun initFaceLandmarker() {
         val baseOptions = BaseOptions.builder()
@@ -64,6 +68,7 @@ class MainActivity : ComponentActivity() {
         faceLandmarker = FaceLandmarker.createFromOptions(this, options)
     }
 
+
     @RequiresApi(Build.VERSION_CODES.O)
     private val askCamera = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -76,48 +81,31 @@ class MainActivity : ComponentActivity() {
 
         previewView = findViewById(R.id.previewView)
         overlay = findViewById(R.id.overlay)
-/*        smileText = findViewById(R.id.smileText)
-        smileEmoji = findViewById(R.id.smileEmoji)*/
-        rocketContainer = findViewById(R.id.rocketContainer)
+        smileText = findViewById(R.id.smileText)
+        smileEmoji = findViewById(R.id.smileEmoji)
 
+        //smile = SmileInterpreter(this)
         yuv = YuvToRgbConverter(this)
+
         svm = SmileSvmInterpreter(this)
         initFaceLandmarker()
 
+
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            == PackageManager.PERMISSION_GRANTED
-        ) startCamera()
+            == PackageManager.PERMISSION_GRANTED) startCamera()
         else askCamera.launch(Manifest.permission.CAMERA)
+
     }
 
     override fun onResume() {
         super.onResume()
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
-        if (!rocketAnimated) {
-            rocketAnimated = true
-            startRocketZoom()
-        }
     }
 
     override fun onPause() {
         super.onPause()
         window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
-
-    private fun startRocketZoom() {
-        rocketContainer.post {
-            rocketContainer.animate()
-                .setStartDelay(1000)
-                .scaleX(1.8f)
-                .scaleY(1.8f)
-                .translationY(300f) // dodatnie = w dół
-                .setDuration(700)
-                .setInterpolator(DecelerateInterpolator())
-                .start()
-        }
-    }
-
     @RequiresApi(Build.VERSION_CODES.O)
     private fun startCamera() {
         val providerFuture = ProcessCameraProvider.getInstance(this)
@@ -136,6 +124,7 @@ class MainActivity : ComponentActivity() {
 
             analysis.setAnalyzer(executor) { proxy ->
                 try {
+                    // ewentualne rzadsze klatki (chcesz -> zostaw)
                     frameCount = (frameCount + 1) % 3
                     if (frameCount != 0) { proxy.close(); return@setAnalyzer }
 
@@ -143,12 +132,16 @@ class MainActivity : ComponentActivity() {
                     val rot = proxy.imageInfo.rotationDegrees
                     bmp = bmp.rotate(rot)
 
+                    // Z BItmapy robimy MPImage
                     val mpImage = BitmapImageBuilder(bmp).build()
                     val timestampMs = SystemClock.uptimeMillis()
-                    val result = faceLandmarker.detectForVideo(mpImage, timestampMs)
 
-                    val faces = result.faceLandmarks()
-                    if (faces.isEmpty()) {
+                    // FaceLandmarker w trybie VIDEO
+                    val result: FaceLandmarkerResult =
+                        faceLandmarker.detectForVideo(mpImage, timestampMs)
+
+                    val faceLandmarksList = result.faceLandmarks()
+                    if (faceLandmarksList.isEmpty()) {
                         runOnUiThread {
                             overlay.setBoxes(emptyList())
                             smileText.text = "Brak twarzy"
@@ -156,27 +149,63 @@ class MainActivity : ComponentActivity() {
                         return@setAnalyzer
                     }
 
-                    val landmarks = faces[0]
-                    val lipsPoints = LipsFeatureExtractor.LIPS_INDICES.map {
-                        val lm = landmarks[it]
+                    // Bierzemy pierwszą twarz
+                    val landmarks = faceLandmarksList[0]  // lista 468 (lub 478) punktów
+
+                    // wyciągamy tylko usta, tak jak w Pythonie
+                    val lipsPoints = LipsFeatureExtractor.LIPS_INDICES.map { idx ->
+                        val lm = landmarks[idx]
                         PointF(lm.x(), lm.y())
                     }
 
+                    // liczymy cechy
                     val features = LipsFeatureExtractor.computeFeaturesFromLips(lipsPoints)
+
+                    // predykcja SVM
                     val smiling = svm.isSmiling(features)
                     val score = svm.decisionScore(features)
                     val label = if (smiling) "Smiling" else "Not Smiling"
+                    val status = "$label   (score = ${"%.2f".format(score)})"
+
+                    // prostokąt na overlayu: bierzemy min/max ust (normalizowane) i skaluje do PreviewView
+                    val minX = lipsPoints.minOf { it.x }
+                    val maxX = lipsPoints.maxOf { it.x }
+                    val minY = lipsPoints.minOf { it.y }
+                    val maxY = lipsPoints.maxOf { it.y }
+
+                    val w = previewView.width.toFloat()
+                    val h = previewView.height.toFloat()
+
+                    // jeśli preview jest lustrzane dla front kamerki, możemy odbić X:
+                    val leftPx = w * (1f - maxX)  // lustrzane odbicie
+                    val rightPx = w * (1f - minX)
+                    val topPx = h * minY
+                    val bottomPx = h * maxY
+//                    Log.d("LipsFeatures", "features=${features.joinToString()}")
+                    val rectOnOverlay = android.graphics.RectF(
+                        leftPx,
+                        topPx,
+                        rightPx,
+                        bottomPx
+                    )
+
+                    val boxes = listOf(
+                        OverlayView.Box(rectOnOverlay, label, smiling)
+                    )
 
                     runOnUiThread {
-                        smileText.text = "$label (${String.format("%.2f", score)})"
+                        overlay.setBoxes(boxes)
+                        smileText.text = status
 
                         if (smiling && !lastSmilingState) {
+                            // przejście z brak uśmiechu -> uśmiech : zrób "pop" animację
                             smileEmoji.animate()
                                 .alpha(1f)
                                 .scaleX(1.2f)
                                 .scaleY(1.2f)
                                 .setDuration(200)
                                 .withEndAction {
+                                    // delikatne cofnięcie do 1.0, żeby nie była za duża
                                     smileEmoji.animate()
                                         .scaleX(1f)
                                         .scaleY(1f)
@@ -185,6 +214,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 .start()
                         } else if (!smiling && lastSmilingState) {
+                            // przejście z uśmiechu -> brak uśmiechu: wygaszamy emotkę
                             smileEmoji.animate()
                                 .alpha(0f)
                                 .scaleX(0.8f)
@@ -201,18 +231,15 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+
             provider.unbindAll()
-            provider.bindToLifecycle(
-                this,
-                CameraSelector.DEFAULT_FRONT_CAMERA,
-                preview,
-                analysis
-            )
+            provider.bindToLifecycle(this, CameraSelector.DEFAULT_FRONT_CAMERA, preview, analysis)
         }, ContextCompat.getMainExecutor(this))
     }
+
 }
 
-/* ===== helpery ===== */
+// ---------- helpery ----------
 
 private fun ImageProxy.toBitmap(conv: YuvToRgbConverter): Bitmap? {
     val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -223,5 +250,10 @@ private fun ImageProxy.toBitmap(conv: YuvToRgbConverter): Bitmap? {
 private fun Bitmap.rotate(deg: Int): Bitmap {
     if (deg == 0) return this
     val m = Matrix().apply { postRotate(deg.toFloat()) }
+    return Bitmap.createBitmap(this, 0, 0, width, height, m, true)
+}
+
+private fun Bitmap.mirrorHorizontally(): Bitmap {
+    val m = Matrix().apply { preScale(-1f, 1f) }
     return Bitmap.createBitmap(this, 0, 0, width, height, m, true)
 }
