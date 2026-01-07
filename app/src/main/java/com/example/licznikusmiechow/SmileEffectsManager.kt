@@ -2,6 +2,7 @@ package com.example.licznikusmiechow
 
 import android.content.Context
 import android.graphics.Color
+import android.media.MediaPlayer
 import android.os.SystemClock
 import android.view.Gravity
 import android.view.animation.DecelerateInterpolator
@@ -18,21 +19,27 @@ class SmileEffectsManager(
     private val previewView: PreviewView,
     private val effectsLayer: FrameLayout
 ) {
+    private val PREFS_NAME = "smile_settings"
+    private val KEY_SOUND_ENABLED = "sound_enabled"
+    private var mediaPlayer: MediaPlayer? = null
 
     // ===== KONTROLA =====
     private var lastEffectTime = 0L
     private var effectRunning = false
 
-    private val COOLDOWN_MS = 2800L
+    private val COOLDOWN_MS = 1400L
     private val BASE_DURATION = 3000L
 
-    private val texts = listOf(
-        "BRAWO!",
-        "SUPER!",
-        "WOW!",
-        "ŚWIETNIE!",
-        "GOOD JOB!"
+    // tekst -> dźwięk (RAW)
+    private val textSoundMap = mapOf(
+        "BRAWO!" to R.raw.text_brawo,
+        "SUPER!" to R.raw.text_super,
+        "WOW!" to R.raw.text_wow,
+        "ŚWIETNIE!" to R.raw.text_swietnie,
+        "EKSTRA!" to R.raw.text_ekstra
     )
+
+    private val texts = textSoundMap.keys.toList()
 
     fun onSmileDetected(faceX: Float, faceY: Float) {
         if (effectRunning) return
@@ -43,10 +50,10 @@ class SmileEffectsManager(
         lastEffectTime = now
         effectRunning = true
 
-        // 👉 NAPIS ZAWSZE
-        textPopAtEdge()
+        // NAPIS + DŹWIĘK
+        textPopAtEdgeWithSound()
 
-        // 👉 JEDNA LOSOWA ANIMACJA GŁÓWNA
+        // LOSOWA ANIMACJA (BEZ DŹWIĘKU)
         when (Random.nextInt(8)) {
             0 -> starBurstAboveFace(faceX, faceY)
             1 -> starRainCrazy()
@@ -59,9 +66,7 @@ class SmileEffectsManager(
         }
     }
 
-    // =====================================================
     // =================== GWIAZDKI ========================
-    // =====================================================
 
     private fun starBurstAboveFace(x: Float, y: Float) {
         val startY = y - 120f
@@ -130,9 +135,7 @@ class SmileEffectsManager(
         finishLater(BASE_DURATION + 600)
     }
 
-    // =====================================================
     // =================== PLANETY =========================
-    // =====================================================
 
     private fun bigPlanetPop() {
         val size = Random.nextInt(360, 520)
@@ -173,7 +176,6 @@ class SmileEffectsManager(
         else startY
 
         val planet = spawnImage(randomPlanet(), startX, startY, size)
-        planet.alpha = 1f
 
         planet.animate()
             .translationX(endX)
@@ -212,9 +214,7 @@ class SmileEffectsManager(
         finishLater(BASE_DURATION + 1000)
     }
 
-    // =====================================================
     // =================== RAKIETA =========================
-    // =====================================================
 
     private fun rocketRandom() {
         val size = 180
@@ -241,7 +241,7 @@ class SmileEffectsManager(
             )
         }
 
-        val rocket = spawnImage(R.drawable.ic_rocket_space, sx, sy, size)
+        val rocket = spawnImage(randomRocket(), sx, sy, size)
 
         rocket.animate()
             .translationX(ex)
@@ -252,33 +252,18 @@ class SmileEffectsManager(
             .withEndAction { remove(rocket) }
             .start()
 
-        repeat(12) {
-            val star = spawnImage(
-                R.drawable.ic_star_space,
-                rocket.x + size / 2,
-                rocket.y,
-                Random.nextInt(48, 64)
-            )
-            star.animate()
-                .translationXBy(Random.nextInt(-220, 220).toFloat())
-                .translationYBy(Random.nextInt(200, 420).toFloat())
-                .alpha(0f)
-                .setDuration(BASE_DURATION)
-                .withEndAction { remove(star) }
-                .start()
-        }
-
         finishLater(BASE_DURATION + 1600)
     }
 
-    // =====================================================
-    // =================== NAPISY ==========================
-    // =====================================================
+    // =================== NAPIS + DŹWIĘK ==================
 
-    private fun textPopAtEdge() {
+    private fun textPopAtEdgeWithSound() {
         val top = Random.nextBoolean()
+        val text = texts.random()
+        val soundRes = textSoundMap[text]
+
         val tv = TextView(context).apply {
-            text = texts.random()
+            this.text = text
             textSize = 40f
             setTextColor(Color.WHITE)
             setShadowLayer(10f, 0f, 0f, Color.BLACK)
@@ -292,12 +277,16 @@ class SmileEffectsManager(
             FrameLayout.LayoutParams.WRAP_CONTENT,
             FrameLayout.LayoutParams.WRAP_CONTENT
         )
-        lp.gravity = if (top) Gravity.TOP or Gravity.CENTER_HORIZONTAL
-        else Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+        lp.gravity =
+            if (top) Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            else Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
         lp.topMargin = if (top) 48 else 0
         lp.bottomMargin = if (!top) 48 else 0
 
         effectsLayer.addView(tv, lp)
+
+        // DŹWIĘK
+        soundRes?.let { playSound(it) }
 
         tv.animate()
             .alpha(1f)
@@ -314,9 +303,24 @@ class SmileEffectsManager(
             .start()
     }
 
-    // =====================================================
+    private fun playSound(resId: Int) {
+        if (!isSoundEnabled()) return
+
+        // zatrzymaj poprzedni dźwięk, jeśli jeszcze gra
+        mediaPlayer?.stop()
+        mediaPlayer?.release()
+        mediaPlayer = null
+
+        mediaPlayer = MediaPlayer.create(context, resId)
+        mediaPlayer?.setOnCompletionListener {
+            it.release()
+            mediaPlayer = null
+        }
+        mediaPlayer?.start()
+    }
+
+
     // =================== HELPERY =========================
-    // =====================================================
 
     private fun spawnImage(res: Int, x: Float, y: Float, size: Int): ImageView =
         ImageView(context).apply {
@@ -343,4 +347,16 @@ class SmileEffectsManager(
             R.drawable.ic_planet2_space,
             R.drawable.ic_planet3_space
         ).random()
+
+    private fun randomRocket(): Int =
+        listOf(
+            R.drawable.ic_rocket_space,
+            R.drawable.ic_rocket2_space,
+            R.drawable.ic_rocket3_space
+        ).random()
+
+    private fun isSoundEnabled(): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_SOUND_ENABLED, true)
+    }
 }
