@@ -15,7 +15,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.LicznikUsmiechow">
+        android:theme="@style/Theme.PozytywneEmocje">
 
         <activity
             android:name=".MainMenuActivity"
@@ -25,7 +25,8 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name=".MainActivity" />
+        <activity android:name=".MainActivity"
+            tools:ignore="NewApi" />
         <activity android:name=".SettingsActivity" />
 
     </application>

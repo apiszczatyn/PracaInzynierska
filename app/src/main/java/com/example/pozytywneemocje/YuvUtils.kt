@@ -1,4 +1,4 @@
-package com.example.licznikusmiechow
+package com.example.pozytywneemocje
 
 import androidx.camera.core.ImageProxy
 import java.nio.ByteBuffer

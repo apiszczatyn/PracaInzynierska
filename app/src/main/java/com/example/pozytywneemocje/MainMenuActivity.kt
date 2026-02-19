@@ -1,4 +1,4 @@
-package com.example.licznikusmiechow
+package com.example.pozytywneemocje
 
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
@@ -9,7 +9,6 @@ import kotlin.random.Random
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import android.widget.Button
 import android.widget.ImageView
 import android.graphics.RectF
 

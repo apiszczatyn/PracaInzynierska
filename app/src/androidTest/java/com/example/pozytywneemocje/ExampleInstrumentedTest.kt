@@ -1,4 +1,4 @@
-package com.example.licznikusmiechow
+package com.example.pozytywneemocje
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
