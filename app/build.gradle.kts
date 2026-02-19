@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.licznikusmiechow"
+    namespace = "com.example.pozytywneemocje"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.licznikusmiechow"
+        applicationId = "com.example.pozytywneemocje"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

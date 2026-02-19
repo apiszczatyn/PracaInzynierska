@@ -1,4 +1,4 @@
-package com.example.licznikusmiechow
+package com.example.pozytywneemocje
 
 import android.graphics.PointF
 import kotlin.math.hypot
