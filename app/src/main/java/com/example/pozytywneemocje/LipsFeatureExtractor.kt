@@ -27,7 +27,7 @@ object LipsFeatureExtractor {
     fun computeFeaturesFromLips(lips: List<PointF>): FloatArray {
         require(lips.isNotEmpty()) { "Lips list is empty" }
 
-        // szukamy punktów skrajnych w poziomie
+        // punkty skrajne w poziomie
         val left = lips.minByOrNull { it.x }!!
         val right = lips.maxByOrNull { it.x }!!
 
