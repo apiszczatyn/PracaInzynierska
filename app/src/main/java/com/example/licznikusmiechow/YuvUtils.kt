@@ -14,14 +14,14 @@ object YuvUtils {
 
         val out = ByteArray(ySize + uvSize)
 
-        // --- Y ---
+        //Y
         val yPlane = image.planes[0]
         copyPlane(
             yPlane.buffer, yPlane.rowStride, yPlane.pixelStride,
             width, height, out, 0
         )
 
-        // --- UV (VU dla NV21) ---
+        //UV (VU dla NV21)
         val uPlane = image.planes[1]
         val vPlane = image.planes[2]
         val chromaHeight = height / 2
@@ -63,11 +63,11 @@ object YuvUtils {
         val src = buffer.duplicate()
         var outPos = offset
         if (pixelStride == 1 && rowStride == width) {
-            // szybka ścieżka: cały blok na raz
+
             src.get(out, outPos, width * height)
             return
         }
-        // ogólna ścieżka: linia po linii
+        
         for (row in 0 until height) {
             var srcPos = row * rowStride
             if (pixelStride == 1) {

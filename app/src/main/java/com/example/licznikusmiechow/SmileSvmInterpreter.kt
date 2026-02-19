@@ -21,10 +21,10 @@ class SmileSvmInterpreter(private val context: Context) {
     companion object {
         private const val TAG = "SmileSvmInterpreter"
 
-        // nazwa pliku i klucza w SharedPreferences
+
         private const val PREFS_NAME = "smile_settings"
         private const val KEY_THRESHOLD = "smile_threshold"
-        private const val DEFAULT_THRESHOLD = 0.0f  // to, co wcześniej (f >= 0)
+        private const val DEFAULT_THRESHOLD = 0.0f
     }
 
     private val model: SvmModel = loadFromAssets(context, "svm_smile_model.json")
@@ -60,14 +60,14 @@ class SmileSvmInterpreter(private val context: Context) {
         return SvmModel(mean, scale, supportVectors, dualCoef, intercept, gamma, classes)
     }
 
-    /** odczyt aktualnego progu z SharedPreferences */
+    // odczyt aktualnego progu
     private fun getThreshold(): Double {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val t = prefs.getFloat(KEY_THRESHOLD, DEFAULT_THRESHOLD)
         return t.toDouble()
     }
 
-    /** decyzja SVM – jak w sklearn decision_function */
+    // decyzja SVM
     fun decisionScore(features: FloatArray): Double {
         require(features.size == model.mean.size) {
             "Zły rozmiar wektora cech: ${features.size}, oczekiwano ${model.mean.size}"

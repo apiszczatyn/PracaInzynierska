@@ -50,10 +50,10 @@ class SmileEffectsManager(
         lastEffectTime = now
         effectRunning = true
 
-        // NAPIS + DŹWIĘK
+
         textPopAtEdgeWithSound()
 
-        // LOSOWA ANIMACJA (BEZ DŹWIĘKU)
+
         when (Random.nextInt(8)) {
             0 -> starBurstAboveFace(faceX, faceY)
             1 -> starRainCrazy()
@@ -66,7 +66,7 @@ class SmileEffectsManager(
         }
     }
 
-    // =================== GWIAZDKI ========================
+    //GWIAZDKI
 
     private fun starBurstAboveFace(x: Float, y: Float) {
         val startY = y - 120f
@@ -135,7 +135,7 @@ class SmileEffectsManager(
         finishLater(BASE_DURATION + 600)
     }
 
-    // =================== PLANETY =========================
+    //PLANETY
 
     private fun bigPlanetPop() {
         val size = Random.nextInt(360, 520)
@@ -214,7 +214,7 @@ class SmileEffectsManager(
         finishLater(BASE_DURATION + 1000)
     }
 
-    // =================== RAKIETA =========================
+    //RAKIETA
 
     private fun rocketRandom() {
         val size = 180
@@ -255,7 +255,7 @@ class SmileEffectsManager(
         finishLater(BASE_DURATION + 1600)
     }
 
-    // =================== NAPIS + DŹWIĘK ==================
+    //NAPIS + DŹWIĘK
 
     private fun textPopAtEdgeWithSound() {
         val top = Random.nextBoolean()
@@ -320,7 +320,7 @@ class SmileEffectsManager(
     }
 
 
-    // =================== HELPERY =========================
+    //HELPERY
 
     private fun spawnImage(res: Int, x: Float, y: Float, size: Int): ImageView =
         ImageView(context).apply {

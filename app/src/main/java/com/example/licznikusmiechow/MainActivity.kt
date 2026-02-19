@@ -154,7 +154,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// ===== helpery =====
+//helpery
 
 private fun ImageProxy.toBitmap(conv: YuvToRgbConverter): Bitmap {
     val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)

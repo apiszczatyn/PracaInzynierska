@@ -6,7 +6,6 @@ import kotlin.math.sqrt
 
 object LipsFeatureExtractor {
 
-    // Ten sam zestaw indeksów ust co w Pythonie (FACEMESH_LIPS)
     val LIPS_INDICES = intArrayOf(
         61, 146, 91, 181, 84, 17, 314, 405, 321, 375,
         291, 308, 324, 318, 402, 317, 14, 87, 178, 88,
@@ -25,12 +24,6 @@ object LipsFeatureExtractor {
         return sqrt(acc / size)
     }
 
-    /**
-     * lips: lista punktów (x,y) w układzie znormalizowanym 0..1, tak jak w MediaPipe
-     *
-     * Zwraca: [mar, smile_curve, asym, spread_x, spread_y]
-     * dokładnie jak compute_features_from_lips w Pythonie.
-     */
     fun computeFeaturesFromLips(lips: List<PointF>): FloatArray {
         require(lips.isNotEmpty()) { "Lips list is empty" }
 

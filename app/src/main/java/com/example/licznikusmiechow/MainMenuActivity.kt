@@ -61,14 +61,14 @@ class MainMenuActivity : AppCompatActivity() {
     }
 
     private fun createFloatingStars(layer: ViewGroup) {
-        // Poczekaj aż layout się zmierzy, żeby znać szerokość/wysokość
+
         layer.post {
             val width = layer.width
             val height = layer.height
 
-            val starCount = 30  // ile gwiazdek chcesz
+            val starCount = 30
             repeat(starCount) {
-                val sizeDp = Random.nextInt(12, 16) // losowy rozmiar
+                val sizeDp = Random.nextInt(12, 16)
                 val sizePx = (sizeDp * layer.resources.displayMetrics.density).toInt()
 
                 val star = ImageView(layer.context).apply {
@@ -76,7 +76,7 @@ class MainMenuActivity : AppCompatActivity() {
                     layoutParams = ViewGroup.LayoutParams(sizePx, sizePx)
                 }
 
-                // losowa pozycja startowa na ekranie
+
                 val startX = Random.nextInt(0, width - sizePx).toFloat()
                 val startY = Random.nextInt(0, height).toFloat()
                 star.x = startX
@@ -90,13 +90,13 @@ class MainMenuActivity : AppCompatActivity() {
     }
 
     private fun startStarDriftAnimation(star: ImageView, width: Int, height: Int) {
-        // Gwiazdka będzie powoli przesuwać się w górę lub w dół
+
         val direction = if (Random.nextBoolean()) 1 else -1
 
         val startY = star.y
         val endY = if (direction == 1) height + 100f else -100f
 
-        val duration = Random.nextLong(12000L, 22000L) // 12–22 sekundy
+        val duration = Random.nextLong(12000L, 22000L)
 
         val animY = ObjectAnimator.ofFloat(star, "translationY", startY, endY).apply {
             this.duration = duration
@@ -106,10 +106,10 @@ class MainMenuActivity : AppCompatActivity() {
             startDelay = Random.nextLong(0L, 8000L)
         }
 
-        // delikatny dryf w poziomie tam–z powrotem
-        val deltaX = Random.nextInt(-180, 180).toFloat()  // większy zakres
+
+        val deltaX = Random.nextInt(-180, 180).toFloat()
         val animX = ObjectAnimator.ofFloat(star, "translationX", star.x, star.x + deltaX).apply {
-            this.duration = Random.nextLong(2000L, 2500L)  // dużo szybciej
+            this.duration = Random.nextLong(2000L, 2500L)
             interpolator = LinearInterpolator()
             repeatCount = ValueAnimator.INFINITE
             repeatMode = ValueAnimator.REVERSE
@@ -138,7 +138,7 @@ class MainMenuActivity : AppCompatActivity() {
                 val sizeDp = planetSizesDp[index]
                 val sizePx = (sizeDp * layer.resources.displayMetrics.density).toInt()
 
-                // SPRZĘŻONY MECANIZM UNIKANIA STARTU
+
                 val (safeX, safeY) = generateNonOverlappingPosition(
                     width, height, sizePx, sizePx, startArea
                 )
@@ -179,7 +179,7 @@ class MainMenuActivity : AppCompatActivity() {
                 y + objHeight
             )
 
-            // jeśli NIE zachodzi kolizja → przerwij pętlę
+
             if (!RectF.intersects(objRect, forbidden)) {
                 break
             }
@@ -191,9 +191,9 @@ class MainMenuActivity : AppCompatActivity() {
 }
 
 private fun startPlanetDriftAnimation(planet: ImageView, width: Int, height: Int, index: Int) {
-    // Planety suną BARDZO powoli w bok (parallax)
+
     val direction = if (index % 2 == 0) 1 else -1
-    val travelX = width * 0.25f * direction  // 25% szerokości ekranu
+    val travelX = width * 0.25f * direction
 
     val animX = ObjectAnimator.ofFloat(
         planet,
@@ -201,13 +201,13 @@ private fun startPlanetDriftAnimation(planet: ImageView, width: Int, height: Int
         planet.x,
         planet.x + travelX
     ).apply {
-        duration = 25000L + index * 5000L  // 25–35 sekund
+        duration = 25000L + index * 5000L
         repeatCount = ValueAnimator.INFINITE
         repeatMode = ValueAnimator.REVERSE
         interpolator = LinearInterpolator()
     }
 
-    // Bardzo delikatne unoszenie góra–dół
+
     val travelY = 40f
     val animY = ObjectAnimator.ofFloat(
         planet,
@@ -227,7 +227,7 @@ private fun startPlanetDriftAnimation(planet: ImageView, width: Int, height: Int
 
 private fun animateStartButton(button: ImageView) {
 
-    // Pulsowanie rozmiaru – efekt "oddychania"
+
     val scaleUp = ObjectAnimator.ofFloat(button, "scaleX", 1f, 1.12f).apply {
         duration = 900L
         repeatCount = ValueAnimator.INFINITE
